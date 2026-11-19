@@ -7,22 +7,31 @@ import assert from "assert";
 import fs from 'fs';
 import path from 'path';
 
-// 初始化各服务的连接 redis, mongo
+// Redis / Mongo 未启用时仍可启动，保证首页可访问
 async function initService() {
     const {REDIS_ADDRESS, REDIS_USERNAME, REDIS_PASSWORD, MONGO_ADDRESS, MONGO_USERNAME, MONGO_PASSWORD} = process.env;
-    const [ REDIS_HOST, REDIS_PORT] = REDIS_ADDRESS.split(':');
-    const redis = new Redis({
-        port: parseInt(REDIS_PORT, 10),
-        host: REDIS_HOST,
-        username: REDIS_USERNAME,
-        password: REDIS_PASSWORD,
-        db: 0,
-    });
 
-    assert(await redis.echo('echo') === 'echo', `redis echo error`);
+    let redis: Redis | null = null;
+    if (REDIS_ADDRESS) {
+        const [ REDIS_HOST, REDIS_PORT] = REDIS_ADDRESS.split(':');
+        redis = new Redis({
+            port: parseInt(REDIS_PORT, 10),
+            host: REDIS_HOST,
+            username: REDIS_USERNAME,
+            password: REDIS_PASSWORD,
+            db: 0,
+        });
+        assert(await redis.echo('echo') === 'echo', `redis echo error`);
+    } else {
+        console.log('REDIS_ADDRESS not set, skip redis init');
+    }
 
-    const mongoUrl = `mongodb://${MONGO_USERNAME}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_ADDRESS}`;
-    await mongoose.connect(mongoUrl);    
+    if (MONGO_ADDRESS && MONGO_USERNAME && MONGO_PASSWORD) {
+        const mongoUrl = `mongodb://${MONGO_USERNAME}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_ADDRESS}`;
+        await mongoose.connect(mongoUrl);
+    } else {
+        console.log('Mongo env not set, skip mongo init');
+    }
 
     return {
         redis,
@@ -44,7 +53,14 @@ initService().then(async ({ redis, mongoose}) => {
         const indexPath = path.join(__dirname, '../public/index.html');
         ctx.type = 'html';
         ctx.body = fs.readFileSync(indexPath, 'utf8');
+    }).get('/v1/ping', ctx => {
+        ctx.body = 'ok';
     }).get('/api/get_data_from_redis', async(ctx) => {
+        if (!redis) {
+            ctx.status = 503;
+            ctx.body = { success: false, message: 'redis not enabled' };
+            return;
+        }
         const key = ctx.query.key as string;
         assert(key?.trim(), `key is required`);
         const value = await redis.get(key);
@@ -61,6 +77,11 @@ initService().then(async ({ redis, mongoose}) => {
             }
         }
     }).post('/api/set_data_to_redis', async(ctx) => {
+        if (!redis) {
+            ctx.status = 503;
+            ctx.body = { success: false, message: 'redis not enabled' };
+            return;
+        }
         const key = ctx.query.key as string;
         const body: any = ctx.request.body;
         const value = body.value as string;
@@ -71,6 +92,11 @@ initService().then(async ({ redis, mongoose}) => {
             success: true,
         }
     }).get('/api/get_data_from_mongodb', async(ctx) => {
+        if (mongoose.connection.readyState !== 1) {
+            ctx.status = 503;
+            ctx.body = { success: false, message: 'mongodb not enabled' };
+            return;
+        }
         const name = ctx.query.name as string;
         assert(name?.trim(), `name is required`);
         const data = await Kitten.findOne({ name});
@@ -88,6 +114,11 @@ initService().then(async ({ redis, mongoose}) => {
             }
         }
     }).post('/api/set_data_to_mongodb', async(ctx) => {
+        if (mongoose.connection.readyState !== 1) {
+            ctx.status = 503;
+            ctx.body = { success: false, message: 'mongodb not enabled' };
+            return;
+        }
         const name = ctx.query.name as string;
         assert(name?.trim(), `name is required`);
 
