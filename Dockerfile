@@ -18,6 +18,8 @@ WORKDIR /opt/application/
 
 COPY --from=builder /opt/application/dist ./dist
 
+COPY --from=builder /opt/application/public ./public
+
 COPY package.json ./
 
 COPY run.sh ./

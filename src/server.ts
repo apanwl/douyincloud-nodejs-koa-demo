@@ -4,6 +4,8 @@ import Router from '@koa/router'
 import Redis from 'ioredis';
 import mongoose from 'mongoose';
 import assert from "assert";
+import fs from 'fs';
+import path from 'path';
 
 // 初始化各服务的连接 redis, mongo
 async function initService() {
@@ -39,7 +41,9 @@ initService().then(async ({ redis, mongoose}) => {
 
     const router = new Router();
     router.get('/', ctx => {
-        ctx.body = `Nodejs koa demo project`;
+        const indexPath = path.join(__dirname, '../public/index.html');
+        ctx.type = 'html';
+        ctx.body = fs.readFileSync(indexPath, 'utf8');
     }).get('/api/get_data_from_redis', async(ctx) => {
         const key = ctx.query.key as string;
         assert(key?.trim(), `key is required`);
