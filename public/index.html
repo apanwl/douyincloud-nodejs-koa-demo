@@ -15,15 +15,6 @@
     <meta name="format-detection" content="telephone=no">
     <meta name="referrer" content="origin-when-cross-origin">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <meta name="description" content="">
-    <meta name="aweme:title" content="">
-    <meta name="aweme:description" content="">
-    <meta name="aweme:image" content="https://aoss.bytedances.cn/2026/NOVEMBER/20/12/28/e8da76b0-b575-4274-a9a0-9cea85735f34.jpg">
-    <meta property="og:type" content="article">
-    <meta property="og:title" content="">
-    <meta property="og:description" content="">
-    <meta property="og:image" content="https://aoss.bytedances.cn/2026/NOVEMBER/20/12/28/e8da76b0-b575-4274-a9a0-9cea85735f34.jpg">
-    <link rel="shortcut icon" href="https://aoss.bytedances.cn/2026/NOVEMBER/20/12/28/e8da76b0-b575-4274-a9a0-9cea85735f34.jpg">
     <script src="https://wlm-1306268138.cos.ap-nanjing.myqcloud.com/zndl/3.7.1/jquery.min.js"></script>
     <style>
         * {
@@ -53,10 +44,32 @@
             border-radius: 30px;
             margin-top: 20px
         }
+
+        .tips {
+            display: none;
+            justify-content: flex-start;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 116px;
+        }
+
+        .tips span {
+            color: #b1b4b9;
+            margin-top: 30px;
+            letter-spacing: 2px;
+        }
+
+        .tips img {
+            width: 88px;
+        }
     </style>
 </head>
 
 <body>
+    <div id="tips" class="tips">
+        <img src="https://qn.link.qianhe6.com/link/img/ap/dy-card.png" alt="">
+        <span>仅限抖音内打开此链接</span>
+    </div>
 
     <div id="oldbox" style="display: none;">
         <div style="position:fixed;top: 10px;width: 100%;display: flex;align-items: center;justify-content: center;">
@@ -94,6 +107,19 @@
     <div id="app"></div>
 
     <script>
+        function isDouyin() {
+            var ua = navigator.userAgent.toLowerCase();
+            return ua.indexOf('aweme') > -1;
+        }
+
+        var tipsEl = document.getElementById("tips");
+        if (!isDouyin()) {
+            tipsEl.style.display = 'flex';
+            document.body.style.background = '#161824';
+        } else {
+            tipsEl.style.display = 'none';
+        }
+
         var currentURL = window.location.href;
         var url = new URL(currentURL);
         const copySpan = document.getElementById("copy");
@@ -110,6 +136,8 @@
         const imageing = document.getElementById("imageing");
         imageing.src = img;
         var ajax_url = urlprefix + "/zndl/api/Redirect/GetCardInfo?code=" + lastSixChars;
+
+        if (isDouyin()) {
 
         function extractShortCode(plainUrl) {
             if (!plainUrl) return "";
@@ -264,6 +292,7 @@
             document.body.removeChild(textarea);
             alert("复制成功！");
         });
+        } // end isDouyin
     </script>
 </body>
 
